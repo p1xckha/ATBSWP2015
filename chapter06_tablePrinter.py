@@ -9,16 +9,29 @@ https://automatetheboringstuff.com/2e/chapter6/
 author: p1xckha
 """
 
-def printTable(tableData):
+
+def print_transposed_table(table_data):
+    '''
+    table_data: list of list of string
+    print table transposed table as fllows.
+    
+    print_transposed_table([11,12,13],[21,22,23])
+    
+    result:
+        11 21 
+        12 22
+        13 23
+
+    '''
     # determine the width of each column: colwidth
-    colwidth = [0] * len(tableData) # initialize 
-    for i in range(len(tableData)):
-        width = max(list(map(len, tableData[i])))
+    colwidth = [0] * len(table_data) # initialize 
+    for i in range(len(table_data)):
+        width = max(list(map(len, table_data[i])))
         colwidth[i] = width+1
     
     # determine the shape of the new table
-    m = max(list(map(len, tableData))) # number of rows
-    n = len(tableData) # number of columns
+    m = max(list(map(len, table_data))) # number of rows
+    n = len(table_data) # number of columns
     print(f"The new table is {m}x{n} table, which has {m} rows and {n} col:")
     
     # print the new table
@@ -26,7 +39,7 @@ def printTable(tableData):
         for j in range(n):
             item = ""
             try:
-                item = tableData[j][i].rjust(colwidth[j]," ")
+                item = table_data[j][i].rjust(colwidth[j]," ")
             except:
                 item = "".rjust(colwidth[j]," ")
             print(item, end="")
@@ -34,18 +47,18 @@ def printTable(tableData):
     
 
 if __name__ == "__main__":
-    tableData = [['apples', 'oranges', 'cherries', 'banana'],
+    table_data = [['apples', 'oranges', 'cherries', 'banana'],
                  ['Alice', 'Bob', 'Carol', 'David'],
                  ['dogs', 'cats', 'moose', 'goose']]
     
-    printTable(tableData)
+    print_transposed_table(table_data)
     print("")
     
-    tableData2 = [["soccer", "baseball", "hockey", "tennis"],
+    table_data2 = [["soccer", "baseball", "hockey", "tennis"],
                   ["iphone", "android", "windows"],
                   ["icecream", "cake"],
                   ["violin"]]
     
-    printTable(tableData2)
+    print_transposed_table(table_data2)
     
    
