@@ -61,7 +61,6 @@ class Downloader():
         if save_filename == None:
             save_filename = os.path.basename(url) # filename=a.jpg, if url='http://a.com/a.jpg'
         
-        
         try:
             data = urllib.request.urlopen(url).read()
             save_path = os.path.join(save_dir, save_filename) # file: a/b.jpg, 01/02.png, etc.
@@ -72,6 +71,8 @@ class Downloader():
             print(e)
         except FileNotFoundError as e:
             print(e)
+        except OSError as e:
+            print(e)
             
     def download_all(self, urls, save_dir='.'):
         for url in urls:
@@ -81,44 +82,63 @@ class Downloader():
 class MySoup(BeautifulSoup):
     def __init__(self, html):
         super().__init__(html, "html.parser")
-        self.currentPage = ""
-        self.urls = None
-        
-    def get_all_urls(self, baseUrl, extensions=None):
-        urls = []
+        self.links = None # list of link object
+        self.imgs = None # list of img object
+        self._base_url = ""
+    
+    @property
+    def base_url(self):
+        return self._base_url
+    
+    @base_url.setter
+    def base_url(self, base_url):
+        self._base_url = base_url
+    
+    def get_all_links(self):
+        links = [] # list of link object
         tags = self('a')
-        for tag in tags:
+        for link in tags:
             # make url valid
-            url = tag.get('href', None)
+            url = link.get('href', None)
             if url is None:
                 continue
             elif url.startswith("javascript:"):
                 continue
             else:
-                url = urljoin(baseUrl, url)
+                url = urljoin(self.base_url, url)
+                link['href'] = url
+                links.append(link)
+        
+        self.links = links
             
-            # add url if extension is not specified
-            if extensions is None:
-                urls.append(url)
-                continue
+    def get_all_urls_from_links(self):
+        if self.links is None:
+            self.get_all_links()
             
-            # add url if url ends with either of extensions
-            if type(extensions) == type([]):
-                for extension in extensions:
-                    if url.endswith("." + extension):
-                        urls.append(url)
-                        break
-            elif type(extensions) == type(""):
-                if url.endswith("." + extensions):
-                    urls.append(url)
-        self.urls = urls
+        urls = list(map(lambda link: link.get('href'), self.links))
         return urls
     
     def get_all_imgs(self):
-        urls = []
+        imgs = []
         tags = self('img')
-        for tag in tags:
-            pass
+        for img in tags:
+            url = img.get('src', None)
+            if url is None:
+                continue
+            elif url.startswith("javascript:"):
+                continue
+            else:
+                url = urljoin(base_url, url)
+                img['src'] = url
+            imgs.append(img)
+        self.imgs = imgs
+        
+    def get_all_urls_from_imgs(self):
+        if self.imgs is None:
+            self.get_all_imgs()
+        
+        urls = list(map(lambda img: img.get('src'), self.imgs))
+        return urls
     
 
     
@@ -131,24 +151,12 @@ if __name__ == "__main__":
     soup = MySoup(html)
     
     # get all internal links
-    baseUrl = re.search('https?://[^/]+', url)[0]
-    all_urls = soup.get_all_urls(baseUrl)
-    urls = []
-    for url in all_urls:
-        if baseUrl in url:
-            urls.append(url)
+    base_url = re.search('https?://[^/]+', url)[0]
+    soup.base_url = base_url
     
-    # visit all internal links and save all images linked from 
-    save_dir = "test1"
-    for url in  urls:
-        html = downloader.get_html(url)
-        if html is None:
-            continue
-        baseUrl = re.search('https?://[^/]+', url)[0]
-        soup = MySoup(html)
-        all_urls = soup.get_all_urls(baseUrl,  ["jpg", "jpeg"])
-        downloader.download_all(all_urls, save_dir)
-
+    urls = soup.get_all_urls_from_imgs()
+    save_dir = 'test2'
+    downloader.download_all(urls, save_dir)
 
 
 
