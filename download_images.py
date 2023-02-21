@@ -93,7 +93,7 @@ class MySoup(BeautifulSoup):
     def base_url(self, base_url):
         self._base_url = base_url
     
-    def get_all_links(self):
+    def set_all_links(self):
         links = [] # list of link object
         tags = self('a')
         for link in tags:
@@ -112,12 +112,12 @@ class MySoup(BeautifulSoup):
             
     def get_all_urls_from_links(self):
         if self.links is None:
-            self.get_all_links()
+            self.set_all_links()
             
         urls = list(map(lambda link: link.get('href'), self.links))
         return urls
     
-    def get_all_imgs(self):
+    def set_all_imgs(self):
         imgs = []
         tags = self('img')
         for img in tags:
@@ -134,7 +134,7 @@ class MySoup(BeautifulSoup):
         
     def get_all_urls_from_imgs(self):
         if self.imgs is None:
-            self.get_all_imgs()
+            self.set_all_imgs()
         
         urls = list(map(lambda img: img.get('src'), self.imgs))
         return urls
