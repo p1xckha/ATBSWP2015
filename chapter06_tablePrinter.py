@@ -13,9 +13,12 @@ author: p1xckha
 def print_transposed_table(table_data):
     '''
     table_data: list of list of string
-    print table transposed table as fllows.
+    print transposed table as fllows.
     
-    print_transposed_table([11,12,13],[21,22,23])
+    for example:
+    table_data = [[11,12,13],
+                  [21,22,23]]
+    print_transposed_table(table_data)
     
     result:
         11 21 
