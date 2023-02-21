@@ -8,11 +8,10 @@ author: p1xckha ( https://github.com/p1xckha )
 import urllib.request, urllib.parse, urllib.error
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
-import ssl
 import os
 import re
 import random
-from urllib.parse import urljoin
+
 
 # https://www.useragents.me/
 user_agents = [
@@ -150,10 +149,11 @@ if __name__ == "__main__":
     html = downloader.get_html(url)
     soup = MySoup(html)
     
-    # get all internal links
+    # set base_url
     base_url = re.search('https?://[^/]+', url)[0]
     soup.base_url = base_url
     
+    # download image on the site
     urls = soup.get_all_urls_from_imgs()
     save_dir = 'test2'
     downloader.download_all(urls, save_dir)
