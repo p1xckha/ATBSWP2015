@@ -212,7 +212,7 @@ def this_example_cannot_run_without_replacing_placeholders():
     
     # get article urls
     internal_urls = soup.get_internal_urls_from_links()
-    save_dir = 'C:\\Users\\t0\\Downloads\\midori'
+    save_dir = 'C:\\Users\\USER\\test' # replace with real folder
     
     # download the jpg images in the articles
     for url in internal_urls:
