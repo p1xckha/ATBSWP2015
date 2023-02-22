@@ -121,7 +121,7 @@ if __name__ == "__main__":
     prefix = "spam"
     extension = "txt"
     digits = 4
-    filenames = ['spam001.txt', 'spam010.txt', 'spam099.txt', 'spam005.txt']
+    filenames = ['spam001.txt', 'spam010.txt', 'spam099.txt', 'spam005.txt', 'dont_rename_me.txt']
     
     # create test files
     renamer.createTestFiles(folder, filenames)
