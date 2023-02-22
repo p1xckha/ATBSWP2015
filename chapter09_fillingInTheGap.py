@@ -3,6 +3,14 @@
 Renamer
 
 author:p1xckha
+
+find filenames with prefix, and rename with continuous number.
+
+for example:
+
+['spam001.txt', 'spam010.txt', 'spam099.txt', 'spam005.txt', 'dont_rename_me.txt']
+-> ['spam001.txt', 'spam002.txt', 'spam003.txt', 'spam004.txt', 'dont_rename_me.txt']
+
 """
 
 import os, shutil, re
