@@ -1,8 +1,25 @@
 # -*- coding: utf-8 -*-
 """
-
+Automate Boring Stuff With Python
 chapter 15
 Prettified Stopwatch
+
+if this script run, it print the Laps in the following format.
+
+**************************
+press enter to add a lap.
+Ctrl-C to exit
+**************************
+
+Lap #01:    3.34 (   3.34)
+Lap #02:    6.14 (   2.80)
+Lap #03:    8.07 (   1.93)
+Lap #04:    8.90 (   0.82)
+Lap #05:    9.80 (   0.91)
+Lap #06:   10.04 (   0.23)
+Lap #07:   10.26 (   0.23)
+.....
+
 """
 
 import time
@@ -25,8 +42,10 @@ class Stopwatch():
         print('Lap #%02d: %s (%s)' % (lap_num, total_time , lap_time), end='')
         
     def run(self):
+        print("**************************")
         print("press enter to add a lap.")
         print("Ctrl-C to exit")
+        print("**************************")
         self.add_time() # start
         try:
             while True:
