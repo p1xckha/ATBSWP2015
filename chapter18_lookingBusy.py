@@ -8,17 +8,28 @@ import time
 from math import sqrt
 
 class MouseCursor():
-    SHORT_DISTANCE = 50
+    SHORT_DISTANCE = 1000
     def __init__(self):
-        self.positions = [] # list of (x, y)
         self.interval = 1 # 
         self.DURATION = 60 # 
         self.recent_distance = 0
+        self.positions = None # list of (x, y) as circular buffer
+        self.latest_positon_index = -1
+        self.initialize_positions()
     
+    def initialize_positions(self):
+        buffersize = int (self.DURATION / self.interval)
+        self.positions = [None] * buffersize
+        
     def add_position(self):
         position = pyautogui.position()
-        self.positions.append(position)
+        self.move_latest_position_index()
+        i = self.latest_positon_index
+        self.positions[i] = position
     
+    def move_latest_position_index(self):
+        self.latest_positon_index = (self.latest_positon_index + 1) % self.DURATION
+        
     def distance(self, pos1, pos2):
         x1, y1 = pos1
         x2, y2 = pos2
@@ -26,18 +37,17 @@ class MouseCursor():
         return distance
     
     def set_recent_distance(self):
-        # discard old positions and remain recent positions in 10mins
-        n = int(self.DURATION / self.interval)
-        if len(self.positions) > n:
-            self.positions = self.positions[-n:]
-        
-        # calculate the total distance mouse move in recent 10mins
+        # calculate the total distance mouse move in recent 10 mins
         recent = 0
-        for i in range(len(self.positions) - 1):
-            pos1 = self.positions[i]
-            pos2 = self.positions[i+1]
+        i = self.latest_positon_index
+        while self.positions[i] != None and self.positions[i-1] != None:
+            pos1 = self.positions[i-1]
+            pos2 = self.positions[i]
             distance = self.distance(pos1, pos2)
             recent += distance
+            i = (i-1) % int(self.DURATION / self.interval)
+            if i == self.latest_positon_index:
+                break
         self.recent_distance = recent
     
     def get_recent_distance(self):
@@ -47,9 +57,17 @@ class MouseCursor():
         print(self.positions)
     
     def is_many_positons(self):
-        return len(self.positions) >= self.DURATION
+        i = self.latest_positon_index
+        amount = 0
+        while self.positions[i] != None:
+            amount += 1
+            i = (i-1) % int (self.DURATION / self.interval)
+            if i == self.latest_positon_index:
+                break
+        
+        return amount == int (self.DURATION / self.interval)
     
-    def is_long_totaldistance(self):
+    def is_long_recent_distance(self):
         return self.get_recent_distance() > self.SHORT_DISTANCE
     
     def handle_positions(self):
@@ -57,7 +75,7 @@ class MouseCursor():
         self.set_recent_distance()
         
     def isused(self):
-        if self.is_many_positons() and not self.is_long_totaldistance():
+        if self.is_many_positons() and not self.is_long_recent_distance():
             return False
         else:
             return True
