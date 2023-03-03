@@ -43,7 +43,9 @@ class Downloader():
     @save_dir.setter
     def save_dir(self, save_dir):
         self._save_dir = os.path.abspath(save_dir)
-        
+        if not os.path.exists(save_dir):
+            self.make_save_dir(save_dir)
+            
     def get_html(self, url):
         try:
             response = requests.get(url)
@@ -62,7 +64,6 @@ class Downloader():
     def download(self, url, save_dir=None, save_filename=None, prefix=None):
         if save_dir is not None:
             self.save_dir = save_dir
-        self.make_save_dir(self.save_dir)
             
         if save_filename == None:
             if prefix == None:
@@ -286,8 +287,8 @@ class Bot():
 def example():
     bot = Bot()
     home_dir = bot.get_home_dir()
-    save_dir = os.path.join(home_dir, 'Downloads\\xxxxxxxx') # placeholder
-    url = url = "https://example.com/xxxxxx/yyy/" # placeholder
+    save_dir = os.path.join(home_dir, 'Downloads\\DeleteMe') # placeholder
+    url = "https://example.com/xxxxxx/yyy/" # placeholder
     urls = bot.get_internal_urls_from_page(url)
     bot.download_all_images_from_pages(urls, save_dir)
     bot.show_error_urls()
@@ -303,4 +304,5 @@ def simple_example():
     
 if __name__ == "__main__":
     simple_example()
+    # example()
 
