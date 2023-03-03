@@ -3,6 +3,18 @@
 Image Site Downloader
 
 author: p1xckha ( https://github.com/p1xckha )
+
+
+
+Bot class: 
+    Download files using Downloader and MySoup
+
+Downloader class:
+    this object handle how to download files
+
+MySoup class:
+    this is a subclass of BeautifulSoup.
+
 """
 import requests
 import urllib.request, urllib.parse, urllib.error
@@ -11,6 +23,8 @@ from bs4 import BeautifulSoup
 import os
 import re
 import time
+import pprint
+from pathlib import Path
 
 
 class Downloader():
@@ -18,8 +32,18 @@ class Downloader():
     this class is made mainly to download images from a website.
     '''
     def __init__(self):
-        self._base_url = ""
+        # self._base_url = ""
+        self.error_urls = []
+        self._save_dir = os.path.join(str(Path.home()), 'Downloads')
     
+    @property
+    def save_dir(self):
+        return self._save_dir
+    
+    @save_dir.setter
+    def save_dir(self, save_dir):
+        self._save_dir = os.path.abspath(save_dir)
+        
     def get_html(self, url):
         try:
             response = requests.get(url)
@@ -28,15 +52,17 @@ class Downloader():
         
         except Exception as err:
             print("*** Error: can not read the page ***\n%s\n%s" % (url, err))
+            self.error_urls.append(url)
             return None
     
     def make_save_dir(self, save_dir):
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
     
-    def download(self, url, save_dir='.', save_filename=None, prefix=None):
-        save_dir = os.path.abspath(save_dir)
-        self.make_save_dir(save_dir)
+    def download(self, url, save_dir=None, save_filename=None, prefix=None):
+        if save_dir is not None:
+            self.save_dir = save_dir
+        self.make_save_dir(self.save_dir)
             
         if save_filename == None:
             if prefix == None:
@@ -48,25 +74,38 @@ class Downloader():
         try:
             response = requests.get(url)
             if response.status_code == 200:
-                save_path = os.path.join(save_dir, save_filename) 
+                save_path = os.path.join(self.save_dir, save_filename) 
                 with open(save_path, mode="wb") as f:
                     f.write(response.content)
                     print('downloaded: ', save_path)
 
         except urllib.error.URLError as e:
             print(e)
+            self.add_error_url(url)
         except FileNotFoundError as e:
             print(e)
+            self.add_error_url(url)
         except OSError as e:
             print(e)
+            self.add_error_url(url)
             
-    def download_all(self, urls, save_dir='.', prefix=None):
+    def download_all(self, urls, save_dir=None, prefix=None):
         for url in urls:
             self.download(url, save_dir, save_filename=None, prefix=prefix)
     
-    def filename_suggestion(self, filename):
-        #TODO
-        pass
+    def add_error_url(self, url):
+        self.error_urls.append(url)
+    
+    def show_error_urls(self):
+        if len(self.error_urls) > 0:
+            print("errors:\n")
+            pprint.pprint(self.error_urls)
+        else:
+            print("No error")
+    
+    def clear(self):
+        self.error_urls.clear()
+
 
 
 class MySoup(BeautifulSoup):
@@ -97,6 +136,8 @@ class MySoup(BeautifulSoup):
             if url is None:
                 continue
             elif url.startswith("javascript:"):
+                continue
+            elif url.startswith("#"):
                 continue
             else:
                 url = urljoin(self.base_url, url)
@@ -194,63 +235,72 @@ class MySoup(BeautifulSoup):
         urls = list(set(urls))
         
         return urls
+
+
+class Bot():
+    '''
+    bot downloads files using Downloader obj and MySoup obj.
+    '''
+    def __init__(self):
+        self.downloader = Downloader()
     
-    
-def this_example_cannot_run_without_replacing_placeholders():
-    downloader = Downloader()
-    url = 'https://example.com/xxxxxxx/' # replace with real url
-    
-    # get html
-    html = downloader.get_html(url)
-    soup = MySoup(html)
-    tag = soup.find('div', {'class': "posts-wrapper"}) # replace with real class name
-    soup = MySoup(tag.prettify()) # tag -> soup
-    
-    # set base_url
-    base_url = re.search('https?://[^/]+', url)[0]
-    soup.base_url = base_url
-    
-    # get article urls
-    internal_urls = soup.get_internal_urls_from_links()
-    save_dir = 'C:\\Users\\USER\\test' # replace with real folder
-    
-    # download the jpg images in the articles
-    for url in internal_urls:
-        print(url)
-        html = downloader.get_html(url)
+    def get_internal_urls_from_page(self, url):
+        html = self.downloader.get_html(url)
         if html is None:
-            continue
-        
+            return None
         soup = MySoup(html)
-        tag = soup.find('div', {'class': "nv-content-wrap entry-content"}) # replace with real class name
-        soup = MySoup(tag.prettify()) # tag -> soup
-        soup.base_url = base_url
-        urls = soup.get_urls_by_ext(['jpg', 'JPEG'])
-        prefix = int(time.time())
-        downloader.download_all(urls, save_dir, prefix)
-
-
-def print_all_links():
-    downloader = Downloader()
-    url = 'https://www.reddit.com/'
-
-    # get html
-    html = downloader.get_html(url)
-    soup = MySoup(html)
+        return soup.get_internal_urls_from_links()
     
-    # set base_url
-    base_url = re.search('https?://[^/]+', url)[0]
-    soup.base_url = base_url
-
-    if html is None:
-        exit(-1)
+    def download_all_images_from_page(self, url, save_dir=None):        
+        print("getting %s" % (url))
+        
+        # get html
+        html = self.downloader.get_html(url)
+        soup = MySoup(html)
+        if html is None:
+            self.downloader.add_error_url(url)
+        else:
+            # set base_url
+            base_url = re.search('https?://[^/]+', url)[0]
+            soup.base_url = base_url
+            
+            # download images
+            urls = soup.get_urls_by_ext(['jpg', 'jpeg', 'JPG', 'JPEG'])
+            prefix = int(time.time())
+            self.downloader.download_all(urls, save_dir, prefix)
     
-    urls = soup.get_internal_urls_from_links()
-    print(urls)
+    def download_all_images_from_pages(self, urls, save_dir=None):
+        for url in urls:
+            self.download_all_images_from_page(url, save_dir)
+    
+    def show_error_urls(self):
+        self.downloader.show_error_urls()
+    
+    def clear(self):
+        self.downloader.clear()
+    
+    def get_home_dir(self):
+        home_dir = str(Path.home())
+        return home_dir
 
+def example():
+    bot = Bot()
+    home_dir = bot.get_home_dir()
+    save_dir = os.path.join(home_dir, 'Downloads\\xxxxxxxx') # placeholder
+    url = url = "https://example.com/xxxxxx/yyy/" # placeholder
+    urls = bot.get_internal_urls_from_page(url)
+    bot.download_all_images_from_pages(urls, save_dir)
+    bot.show_error_urls()
+    bot.clear()
+
+def simple_example():
+    bot = Bot()
+    bot.save_dir = os.path.join(str(Path.home()), 'Downloads\\DeleteMe') # placeholder
+    url = "https://example.com/xxxxxx/yyy/" # placeholder
+    bot.download_all_images_from_page(url)
+    bot.show_error_urls()
+    bot.clear()
     
 if __name__ == "__main__":
-    print_all_links()
-
-
+    simple_example()
 
