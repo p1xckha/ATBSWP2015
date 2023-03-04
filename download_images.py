@@ -7,13 +7,13 @@ author: p1xckha ( https://github.com/p1xckha )
 
 
 Bot class: 
-    Download files using Downloader and MySoup
+    This object is a higher-level interface for interacting with the Downloader object.
 
 Downloader class:
-    this object handle how to download files
+    This object handles how to download files
 
 MySoup class:
-    this is a subclass of BeautifulSoup.
+    This is a subclass of BeautifulSoup.
 
 """
 import requests
@@ -30,7 +30,7 @@ from typing import Optional
 
 class Downloader():
     '''
-    this class is made mainly to download images from a website.
+    this class is made to download files from a website.
     '''
     def __init__(self):
         self.error_urls = []
@@ -240,7 +240,7 @@ class MySoup(BeautifulSoup):
 
 class Bot():
     '''
-    bot downloads files using Downloader obj and MySoup obj.
+    Bot handles downloader object and MySoup objects to download files.
     '''
     def __init__(self):
         self.downloader = Downloader()
@@ -298,10 +298,13 @@ def example():
     bot = Bot()
     home_dir = bot.get_home_dir()
     save_dir = os.path.join(home_dir, 'Downloads\\yyyyyyyy') # placeholder 
-    urls = bot.get_internal_urls_from_page(url)
-    bot.download_all_images_from_pages(urls,save_dir)
+    regex = re.compile('zzzzzz', re.IGNORECASE) # placeholder
+    urls = bot.get_internal_urls_from_page(url, regex)
+    regex = re.compile(r'/(0\d*|[^0][a-zA-z0-9_%-]*)\.jpe?g$', re.IGNORECASE) # placeholder
+    bot.download_all_images_from_pages(urls, save_dir, regex)
     bot.show_error_urls()
     bot.clear()
+
 
 if __name__ == "__main__":
     example()
