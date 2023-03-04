@@ -26,7 +26,7 @@ import time
 import pprint
 from pathlib import Path
 import urllib.parse
-
+from typing import Optional
 
 class Downloader():
     '''
@@ -41,12 +41,12 @@ class Downloader():
         return self._save_dir
     
     @save_dir.setter
-    def save_dir(self, save_dir):
+    def save_dir(self, save_dir: Optional[str]):
         self._save_dir = os.path.abspath(save_dir)
         if not os.path.exists(save_dir):
             self.make_save_dir(save_dir)
             
-    def get_html(self, url):
+    def get_html(self, url) -> Optional[str]:
         try:
             response = requests.get(url)
             html = response.text
@@ -57,11 +57,11 @@ class Downloader():
             self.error_urls.append(url)
             return None
     
-    def make_save_dir(self, save_dir):
+    def make_save_dir(self, save_dir: Optional[str]=None):
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
     
-    def download(self, url, save_dir=None, save_filename=None, prefix=None):
+    def download(self, url, save_dir:Optional[str]=None, save_filename:Optional[str]=None, prefix:Optional[str]=None):
         if save_dir is not None:
             self.save_dir = save_dir
             
@@ -91,11 +91,11 @@ class Downloader():
             print(e)
             self.add_error_url(url)
             
-    def download_all(self, urls, save_dir=None, prefix=None):
+    def download_all(self, urls:list[str], save_dir:Optional[str]=None, prefix:Optional[str]=None):
         for url in urls:
             self.download(url, save_dir, save_filename=None, prefix=prefix)
-    
-    def add_error_url(self, url):
+
+    def add_error_url(self, url:str):
         self.error_urls.append(url)
     
     def show_error_urls(self):
@@ -176,30 +176,33 @@ class MySoup(BeautifulSoup):
             imgs.append(img)
         self._imgs = imgs
     
-    
-    def get_urls_from_links(self):
+    def set_links_if_not(self):
         if self.links is None:
             self.set_links()
+    
+    def set_imgs_if_not(self):
+        if self.imgs is None:
+            self.set_imgs()
             
+    def get_urls_from_links(self) -> list[str]:
+        self.set_links_if_not()
         urls = list(map(lambda link: link.get('href'), self.links))
         urls = list(set(urls))
         urls.sort()
         
         return urls
     
-    def get_urls_from_imgs(self):
-        if self.imgs is None:
-            self.set_imgs()
+    def get_urls_from_imgs(self) -> list[str]:
+        self.set_imgs_if_not()
         
         img_url = lambda img: img['data-src'] if 'data-src' in img.attrs else img['src']
         urls = list(map(img_url, self.imgs))
         return urls
     
-    def get_internal_urls_from_links(self, regex=None):
+    def get_internal_urls_from_links(self, regex:Optional[re.Pattern]=None) -> list[str]:
+        self.set_links_if_not()
         if self.links is None:
-            self.set_links()
-            if self.links is None:
-                return [] # empty list 
+            return [] # empty list
         
         urls = []
         if regex is None:
@@ -213,49 +216,26 @@ class MySoup(BeautifulSoup):
                     urls.append(url)
             return urls
                 
-
-        
-    def get_urls_by_ext(self, extensions):
-        urls = []
-        
-        if self.imgs is None:
-            self.set_imgs()
-        
-        if self.links is None:
-            self.set_links()
-        
-        if type(extensions) == type(""):
-            extensions = [extensions]
-            
-        for url in self.get_all_urls():
-            for extension in extensions:
-                if url.endswith('.' + extension):
-                    urls.append(url)
-                    break
-        
-        # remove same url and make urls unique
-        urls = list(set(urls))
-        
-        return urls
     
-    def get_all_urls(self):
-        
-        if self.imgs is None:
-            self.set_imgs()
-        
-        if self.links is None:
-            self.set_links()
+    def get_all_urls(self) -> list[str]:
+        self.set_imgs_if_not()
+        self.set_links_if_not()
         
         urls = self.get_urls_from_imgs() + self.get_urls_from_links()
+        urls = list(set(urls)) # remove same url and make urls unique
         return urls
+    
+    def get_urls(self, regex:Optional[re.Pattern]=None, extensions: tuple[str]=None) -> list[str]:
+        matched_urls = []
         
-    def get_urls_by_regex(self, regex):
-        urls = []
         for url in self.get_all_urls():
-            if regex.search(url):
-                urls.append(url)
-        return urls
-        
+            if extensions and not url.endswith(extensions):
+                continue
+            if regex and not regex.search(url):
+                continue
+            matched_urls.append(url)
+        return matched_urls
+
     
 
 class Bot():
@@ -265,20 +245,19 @@ class Bot():
     def __init__(self):
         self.downloader = Downloader()
     
-    def get_internal_urls_from_page(self, url, regex=None):
+    def get_internal_urls_from_page(self, url, regex:Optional[re.Pattern]=None):
         html = self.downloader.get_html(url)
         if html is None:
             return None
         soup = MySoup(html)
         
-        if regex is None:
-            return soup.get_internal_urls_from_links()
-        else:
-            return soup.get_internal_urls_from_links(regex)
+        return soup.get_internal_urls_from_links(regex)
             
     
-    def download_all_images_from_page(self, url, save_dir=None, regex=None):        
+    def download_all_images_from_page(self, url, save_dir:Optional[str]=None, regex:Optional[re.Pattern]=None):        
+        print("")
         print("getting %s" % (url))
+        print("")
         
         # get html
         html = self.downloader.get_html(url)
@@ -291,15 +270,15 @@ class Bot():
             soup.base_url = base_url
             
             # download images
-            urls = []
             if regex is None:
-                urls = soup.get_urls_by_ext(['jpg', 'jpeg', 'JPG', 'JPEG'])
+                extensions = ('.jpg', '.jpeg', '.JPG', '.JPEG')
+                urls = soup.get_urls(extensions=extensions)
             else:
-                urls = soup.get_urls_by_regex(regex)
-            prefix = int(time.time())
+                urls = soup.get_urls(regex=regex)
+            prefix = str(int(time.time()))
             self.downloader.download_all(urls, save_dir, prefix)
     
-    def download_all_images_from_pages(self, urls, save_dir=None, regex=None):
+    def download_all_images_from_pages(self, urls:list[str], save_dir:Optional[str]=None, regex:Optional[re.Pattern]=None):
         for url in urls:
             self.download_all_images_from_page(url, save_dir, regex)
     
@@ -315,16 +294,14 @@ class Bot():
 
 
 def example():
-    url = "https://xxxxxxxxxxxx.com/yyyyyyyyy/" # placeholder
+    url = "https://xxxxx.com/yyyyyy/" # placeholder
     bot = Bot()
     home_dir = bot.get_home_dir()
-    save_dir = os.path.join(home_dir, 'Downloads\\xxxxxxxxx') # placeholder 
-    regex = re.compile('xxxxxx', re.IGNORECASE) # placeholder
-    urls = bot.get_internal_urls_from_page(url, regex)
-    bot.download_all_images_from_pages(urls, save_dir)
+    save_dir = os.path.join(home_dir, 'Downloads\\yyyyyyyy') # placeholder 
+    urls = bot.get_internal_urls_from_page(url)
+    bot.download_all_images_from_pages(urls,save_dir)
     bot.show_error_urls()
     bot.clear()
-    
 
 if __name__ == "__main__":
     example()
